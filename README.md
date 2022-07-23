@@ -18,4 +18,4 @@ cmake ..
 make
 ```
 
-3. If everything went successfully, a static library `libcpstresstest.a` should be generated in this `build` directory that you can link with your tests!
+3. If everything went successfully, a static `libcpstresstest.a` should be built that you can then link with your tests!
