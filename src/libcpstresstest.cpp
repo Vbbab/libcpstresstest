@@ -7,10 +7,10 @@ using namespace std;
 using namespace cp;
 
 
-StressTest::StressTest(string filename, function<string(string)> solution, function<string()> generator, long long iters, bool breakOnFail) {
+StressTest::StressTest(string filename, string solFilename, function<string()> generator, long long iters, bool breakOnFail) {
     _ln = filename + "_fails.log";
     _f = ofstream(_ln);
-    _s = solution, _g = generator;
+    _s = solFilename, _g = generator;
     _fp = filename;
     _cnt = iters;
     _failBrk = breakOnFail;
@@ -21,39 +21,45 @@ StressTest::~StressTest() {
     _f.close();
 }
 
-bool StressTest::_run(long long id) {
-    string input = _g(); // Generate a testcase;
-    input += "\n"; // If not already
-    string solution = _s(input);
-    // Trim a bit
-    size_t begin = solution.find_first_not_of(" \n"), end = solution.find_last_not_of(" \n");
-    solution = solution.substr(begin, end - begin + 1);
-
+/**
+ * Runs the given binary, returning a pair of {output, exit code}.
+ */
+pair<string, int> StressTest::runBin(string name, string input) {
     // popen2 the process
     struct popen2 child = {0};
     if (popen2(realpath(_fp.c_str(), NULL), &child)) {
         throw runtime_error("[cp::StressTest] unable to spawn subject process");
     }
-    // Feed that over
+    // Feed input
     write(child.to_child, input.c_str(), input.length() * sizeof(char));
-    // Read stuff over in 1-KiB chunks
+    // Output buffer (read in 1024-byte chunks)
     char buf[1024];
-    string output = "";
-    int exitCode = 0; // Unused
-    waitpid(child.child_pid, &exitCode, 0);
-    // Read in 1024-byte chunks
+    string out = "";
+
+    int ec = 0; // Child exit code (not used)
+    waitpid(child.child_pid, &ec, 0);
+    if (ec) return {"", ec};
+    // Read output
     int bytesRead = 0;
     while ((bytesRead = read(child.from_child, buf, 1024)) > 0) {
-        for(int i = 0; i < bytesRead; i++) output += buf[i];
+        for (int i = 0; i < bytesRead; i++) out += buf[i];
     }
-    // Don't make our pipes overflow (!!!)
-    close(child.to_child);
-    close(child.from_child);
-    // Finally do a bit of trimming
-    begin = output.find_first_not_of(" \n"), end = output.find_last_not_of(" \n");
-    output = output.substr(begin, end - begin + 1);
-    if (output != solution) {
-        _f << "CASE: " << id << "\nINPUT:\n" << input << "\nEXPECT:\n" << solution << "\nGOT:\n" << output << "\n====================\n";
+    // Don't exceed linux open files limit
+    close(child.from_child), close(child.to_child);
+    // Trim
+    int begin = out.find_first_not_of(" \n"), end = out.find_last_not_of(" \n");
+    if (begin == string::npos || end == string::npos) return {out, 0};
+    return {out.substr(begin, end - begin + 1), 0};
+}
+
+bool StressTest::_run(long long id) {
+    string input = _g(); // Generate a testcase;
+    input += "\n"; // If not already
+    string solution = runBin(_s, input).first;
+    pair<string, int> res = runBin(_fp, input);
+    string output = res.first;
+    if (res.second || output != solution) {
+        _f << "CASE: " << id << "\nINPUT:\n" << input << "\nEXPECT:\n" << solution << "\nGOT:\n" << (res.second ? "!R:" + to_string(res.second) : output) << "\n====================\n";
         return false;
     }
     return true;
