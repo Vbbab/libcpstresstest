@@ -8,8 +8,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cerrno>
-#include <libexplain/pipe.h>
-
+// extern "C" {
+// #include <libexplain/pipe.h>
+// }
 struct popen2 {
     pid_t child_pid;
     int from_child, to_child;
@@ -20,11 +21,11 @@ int popen2(const char* cmdline, struct popen2* childInfo) {
     int pipe_stdin[2], pipe_stdout[2];
 
     if (pipe(pipe_stdin)) {
-        cout << "[popen2] " << explain_pipe(pipe_stdin) << endl;
+        cout << "[popen2] weird stuff happened with pipe" /*<< explain_pipe(pipe_stdin)*/ << endl;
         return -1;
     }
     if (pipe(pipe_stdout))  {
-        cout << "[popen2] " << explain_pipe(pipe_stdout) << endl;
+        cout << "[popen2] weird stuff happened with pipe" /*<< explain_pipe(pipe_stdout)*/ << endl;
     }
     p = fork(); // Create a clone of our process which we replace with the process to be tested
     if (p < 0) return p; // Failure
