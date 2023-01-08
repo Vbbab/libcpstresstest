@@ -27,7 +27,10 @@ StressTest::~StressTest() {
 pair<string, int> StressTest::runBin(string name, string input) {
     // popen2 the process
     struct popen2 child = {0};
-    if (popen2(realpath(_fp.c_str(), NULL), &child)) {
+    string cmdline = "\"";
+    cmdline += realpath(_fp.c_str(), NULL);
+    cmdline += "\"";
+    if (popen2(cmdline.c_str(), &child)) {
         throw runtime_error("[cp::StressTest] unable to spawn subject process");
     }
     // Feed input
