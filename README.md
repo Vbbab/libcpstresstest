@@ -1,5 +1,5 @@
 # libcpstresstest
-Simple stress-testing library for cp
+Simple stress-testing (fuzzing) library meant for competitive programming, to easily generate and verify test cases.
 
 ## Building
 **NOTE:** This library is only meant to be used on Linux distributions! It has been tested on Ubuntu 20.04.
